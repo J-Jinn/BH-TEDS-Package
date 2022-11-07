@@ -10,13 +10,13 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
-Imports:
-  dplyr (>= 1.0.10),
-  magrittr (>= 2.0.3),
-  ggplot2 (>= 3.3.6),
-  forcats (>= 0.5.2)
 Depends:
   dplyr (>= 1.0.10),
   magrittr (>= 2.0.3),
   ggplot2 (>= 3.3.6),
-  forcats (>= 0.5.2)
+  forcats (>= 0.5.2), 
+  stringr
+Suggests: 
+  knitr, 
+  rmarkdown, 
+VignetteBuilder: knitr

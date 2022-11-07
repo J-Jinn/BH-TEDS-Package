@@ -1,2 +1,4 @@
 ^BH\.TEDS\.Package\.Rproj$
 ^\.Rproj\.user$
+^doc$
+^Meta$

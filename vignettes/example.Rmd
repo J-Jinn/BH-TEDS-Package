@@ -1,0 +1,130 @@
+---
+title: "BH-TEDS Visualization Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{BH-TEDS Visualization Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE, message=TRUE, warning=TRUE}
+# Reference: https://bookdown.dongzhuoer.com/hadley/r-pkgs/vignettes.html
+# Reference: https://r-pkgs.org/vignettes.html#vignette-workflow-2
+
+library(ggplot2) # Plots. 
+library(dplyr) # Data manipulation. 
+library(magrittr) # Pipe operator. 
+library(gridExtra) # Arrange plots + tables. 
+library(stringr) # For str_wrap() function. 
+library(forcats) # For fct_relable() function.
+
+source("../R/bhteds_helper_functions.R")
+
+# theme_set(theme_bw(base_size = 8)) # plot theme. 
+
+knitr::opts_chunk$set( # Set defaults for knit-to-output. 
+  error = FALSE,     # display error message and keep going if there is an error when set to TRUE.
+  tidy = FALSE,      # Display code as typed if set to FALSE, otherwise reformat if set to TRUE.
+  size = "small",    # Slightly smaller font for code.
+  fig.width = 6.0,   # Width of figures (can be overridden in individual chunks).
+  fig.height = 4.0,  # Height of figures (can be overridden in individual chunks).
+  fig.show = "asis", # Put all figures after all the code.
+  results = "asis",  # Don't wrap text output in verbatim code blocks, but leave asis. 
+  collapse = FALSE,   # Output immediately follows code. 
+  
+  echo = TRUE,      # Always show R code (this is the default).
+  eval = TRUE,      # Always evaluate code chunks. 
+  include = TRUE,   # Similar to echo and eval, but if FALSE, will still evaluate code but won't show R code.
+  message = TRUE,  # enable/disable messages.
+  warning = TRUE   # enable/disable warnings.
+)
+```
+
+===========================================================================================================  
+
+```{r}
+bhteds_data <- readRDS("bhteds_data.RDS")
+bhteds_data_labels <- readRDS("bhteds_data_labels.RDS")
+```
+
+===========================================================================================================  
+
+#### Generate Plots + Tables:  
+
+Choose county (and reference county(ies)) to filter by.  
+```{r}
+unique(bhteds_data$county)
+```
+
+Choose variable(s) to generate aggregate statistics for.  
+```{r}
+colnames(bhteds_data)
+```
+
+Specify variables to use and associate variable names with their preferred labels.  
+```{r}
+my_vars <- c(
+  "inttx", "srvset", "prevtrmt", "psacode", "ssacode", "tsacode", "opioid", "anyopioid", "daystx2", "ageyr10", "adultchild", 
+  "gender", "gendid", "pregnant", "minwag", "race", "ethnic", "educatGrp", "mrtlstat", "empstat", "income2", "veteran", 
+  "livargmt", "corrstat")
+
+bhteds_data_labels <- bhteds_data_labels %>% 
+  mutate(variable = row.names(bhteds_data_labels)) 
+
+var_lab_list <- list()
+for(i in 1:nrow(bhteds_data_labels)) {
+  var_lab_list[bhteds_data_labels[i, 2]] <- bhteds_data_labels[i, 1]
+}
+# Create labels for variables without one (or modify them). 
+var_lab_list["anyopioid"] <- "Medication Assisted Opioid Treatment (any opioid)"
+var_lab_list["daystx2"] <- "Days to Treatment Group"
+var_lab_list["ageyr10"] <- "Age Group"
+var_lab_list["adultchild"] <- "Adult/Child"
+var_lab_list["educatGrp"] <- "Education"
+var_lab_list["income2"] <- "Income Group"
+```
+
+===========================================================================================================  
+
+Call function.  
+```{r, warning=TRUE, message=TRUE}
+# Reference: https://rstats-tips.net/2020/07/31/get-rid-of-info-of-dplyr-when-grouping-summarise-regrouping-output-by-species-override-with-groups-argument/  
+options(dplyr.summarise.inform = FALSE)
+
+my_filters <- list()
+# my_filters[["gender"]] <- c("==", "Female")
+# my_filters[["ageyears"]] <- c(">", "20")
+
+start_time <- Sys.time()
+
+results <- visualize_bhteds_demographics(
+  data = bhteds_data, 
+  labels_data = var_lab_list, 
+  county_filter = "Allegan", 
+  ref_county_filter = c("Barry", "Oakland"), 
+  subset_filter = my_filters, 
+  fiscal_year = "FY2022 Q1-Q3", 
+  stats_vars = my_vars, 
+  ref_stat_type = "median")
+
+end_time <- Sys.time()
+```
+
+Returned objects from function.  
+```{r}
+names(results)
+end_time - start_time
+```
+
+===========================================================================================================  
+
+Post-hoc adjustments to plots/tables (function returns list of ggplot plot objects and dataframes for tables)  
+```{r, fig.width=12, fig.height=12}
+plot2 <- results[["srvset plot"]] + scale_x_discrete(labels = function(x) str_wrap(x, width = 12))
+
+table2 <- gridExtra::tableGrob(results[["srvset table"]], 
+                               theme = bhteds_grid_table_theme(table = results[["srvset table"]]))
+gridExtra::grid.arrange(plot2, table2)
+```
+
